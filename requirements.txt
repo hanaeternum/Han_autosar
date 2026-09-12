@@ -1,0 +1,7 @@
+# 仿真内核与脚本仅依赖 Python 标准库，跑 sim_demo.py / 单元测试无需安装任何包。
+# 以下依赖仅在启动 PyQt5 可视化界面时需要。
+
+PyQt5>=5.15.9
+
+# 可选：将来接真实 CAN 硬件时启用（替换 src/core/virtual_bus.py）
+# python-can>=4.3.1

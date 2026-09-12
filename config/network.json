@@ -1,0 +1,42 @@
+{
+  "profile": "customer_a",
+  "protocol": {
+    "id_base": 1024,
+    "id_extended": false,
+    "dlc": 8,
+    "send_sleep_indication_on_rss": true,
+    "rss_local_wakeup_to_rms": false,
+    "route_nm_between_channels": false,
+    "comment": "id_base=1024 即 0x400；报文 ID = 0x400 + NodeID"
+  },
+  "topology": {
+    "description": "网关 GW 横跨车身网与信息网，两个网段各有独立的 NM 状态；PEPS 为主动唤醒源",
+    "channels": [
+      {
+        "name": "CAN_BODY",
+        "bitrate": 500000,
+        "nodes": [
+          { "ecu": "GW",   "node_id": 16, "role": "网关（车身网侧）" },
+          { "ecu": "BCM",  "node_id": 32, "role": "车身控制器" },
+          { "ecu": "PEPS", "node_id": 48, "role": "无钥匙进入/启动（主动唤醒源）" }
+        ]
+      },
+      {
+        "name": "CAN_INFO",
+        "bitrate": 500000,
+        "nodes": [
+          { "ecu": "GW",  "node_id": 16, "role": "网关（信息网侧）" },
+          { "ecu": "IC",  "node_id": 64, "role": "组合仪表" },
+          { "ecu": "IVI", "node_id": 80, "role": "车载娱乐主机" }
+        ]
+      }
+    ],
+    "gateway_policy": {
+      "ecu": "GW",
+      "source_channel": "CAN_BODY",
+      "target_channel": "CAN_INFO",
+      "delay_ms": 200,
+      "comment": "应用层联动，非 NM 报文路由：车身网被唤醒后由网关应用决定是否拉起信息网"
+    }
+  }
+}

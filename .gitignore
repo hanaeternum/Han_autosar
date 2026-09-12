@@ -1,0 +1,30 @@
+# Python 运行时产物
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+build/
+dist/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+Thumbs.db
+desktop.ini
+
+# WorkBuddy 工作区数据（保留 memory 笔记）
+.workbuddy/*
+!.workbuddy/memory/
+!.workbuddy/memory/**
+
+# 客户规范原件（保密，不入库）
+庆铃*.pdf
