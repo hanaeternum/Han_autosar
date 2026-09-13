@@ -111,6 +111,7 @@ class MainWindow(QMainWindow):
         self.control_panel.kl15Changed.connect(self._on_kl15)
         self.control_panel.networkRequest.connect(self._on_network_request)
         self.control_panel.networkRelease.connect(self._on_network_release)
+        self.control_panel.sourceRelease.connect(self._on_source_release)
         self.control_panel.repeatMessageRequest.connect(self._on_rmr)
         self.control_panel.diagRequest.connect(self._on_diag)
         self.control_panel.customFrameRequested.connect(self._on_custom_frame)
@@ -268,6 +269,11 @@ class MainWindow(QMainWindow):
         if self.worker and self.local_channel is not None:
             self.worker.release_network(self.local_channel, self.local_node_id)
 
+    def _on_source_release(self, source: str) -> None:
+        """只清除指定唤醒源那一路保持事件（如 IO），KL15 / 诊断保持不受影响。"""
+        if self.worker and self.local_channel is not None:
+            self.worker.release_network(self.local_channel, self.local_node_id, source)
+
     def _on_rmr(self) -> None:
         if self.worker and self.local_channel is not None:
             self.worker.repeat_message_request(self.local_channel, self.local_node_id)
@@ -325,6 +331,12 @@ class MainWindow(QMainWindow):
             # 把"当前还有没有网络需求"直接摆到控制按钮旁边：
             # KL15 这类保持事件不清除，节点就会一直停在 NOS（规范语义，不是卡住）
             self.control_panel.set_demand(local_snap["keep_awake"])
+            # BSM / PBS 下不接收应用报文（规范表 4），诊断请求在那里是空操作 → 按钮置灰
+            can_diag = (
+                local_snap["state_short"] not in ("BSM", "PBS")
+                or self.config.protocol.diag_can_wake_from_sleep
+            )
+            self.control_panel.set_diag_allowed(can_diag)
         else:
             self.state_machine_view.set_snapshot(None)
 

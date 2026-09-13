@@ -255,6 +255,52 @@ class TestUiSmoke(unittest.TestCase):
         self.assertIn("DIAG", panel.demand_label.text(), "KL15 下电不应清除诊断保持事件")
         self.assertEqual(self.window.local_status.state_short.text(), "NOS")
 
+    def test_io_wakeup_has_paired_release(self) -> None:
+        """I/O 唤醒要有配对的关闭动作，下拉选谁就开/关谁。"""
+        panel = self.window.control_panel
+        self.window.connect_simulation("CAN_BODY", 0x30, 500000)
+        self.pump(250)
+
+        # 下拉默认停在 I/O 唤醒
+        self.assertIn("关闭 IO", panel.source_release_btn.text())
+        self.assertFalse(panel.source_release_btn.isEnabled(), "没唤醒时不该能点关闭")
+
+        # ---- I/O 唤醒 ----
+        self.window._on_network_request("IO", 3)
+        self.pump(1600)          # 等 T_REPEAT_MESSAGE=1000ms 过去
+        self.assertEqual(self.window.local_status.state_short.text(), "NOS")
+        self.assertIn("IO", panel.demand_label.text())
+        self.assertTrue(panel.source_release_btn.isEnabled(), "持有 I/O 需求后应可关闭")
+
+        # ---- 关闭 I/O 唤醒：只走这一路，节点应能进 RSS ----
+        panel.source_release_btn.click()
+        self.pump(300)
+        self.assertNotIn("IO", panel.demand_label.text())
+        self.assertIn("无", panel.demand_label.text())
+        self.assertEqual(self.window.local_status.state_short.text(), "RSS")
+        self.assertFalse(panel.source_release_btn.isEnabled())
+
+    def test_io_release_does_not_touch_kl15(self) -> None:
+        """关闭 I/O 唤醒不能顺手把 KL15 也清掉 —— 这是成对开关的关键语义。"""
+        panel = self.window.control_panel
+        self.window.connect_simulation("CAN_BODY", 0x30, 500000)
+        self.pump(250)
+
+        panel.kl15_btn.setChecked(True)
+        self.window._on_network_request("IO", 3)
+        self.pump(1600)
+        self.assertIn("KL15", panel.demand_label.text())
+        self.assertIn("IO", panel.demand_label.text())
+        self.assertEqual(self.window.local_status.state_short.text(), "NOS")
+
+        panel.source_release_btn.click()
+        self.pump(300)
+        self.assertNotIn("IO", panel.demand_label.text())
+        self.assertIn("KL15", panel.demand_label.text(), "关闭 I/O 不应清掉 KL15 保持事件")
+        self.assertEqual(
+            self.window.local_status.state_short.text(), "NOS", "KL15 还在，节点应停在 NOS"
+        )
+
     def test_lifecycle_view_tracks_local_state(self) -> None:
         """生命周期流程图必须跟着本机节点状态走。"""
         machine = self.window.state_machine_view
@@ -271,6 +317,23 @@ class TestUiSmoke(unittest.TestCase):
         self.window.control_panel.kl15_btn.setChecked(False)
         self.pump(250)
         self.assertEqual(machine.current_state_short, "RSS", "下电后应高亮 RSS")
+
+    def test_diag_button_disabled_in_sleep_states(self) -> None:
+        """BSM / PBS 下诊断报文不接收，按钮必须置灰，避免"点了没反应"。"""
+        panel = self.window.control_panel
+        self.window.connect_simulation("CAN_BODY", 0x30, 500000)
+        self.pump(250)
+        self.assertFalse(panel.diag_btn.isEnabled(), "BSM 下诊断按钮应置灰")
+
+        panel.kl15_btn.setChecked(True)
+        self.pump(1600)
+        self.assertEqual(self.window.local_status.state_short.text(), "NOS")
+        self.assertTrue(panel.diag_btn.isEnabled(), "NOS 下诊断按钮应可用")
+
+        panel.kl15_btn.setChecked(False)
+        self.pump(2300)
+        self.assertIn(self.window.local_status.state_short.text(), {"PBS", "BSM"})
+        self.assertFalse(panel.diag_btn.isEnabled(), "PBS/BSM 下诊断按钮应再次置灰")
 
     def test_worker_batches_logs_to_ui(self) -> None:
         """回归：曾经因为 _flush 里把 self._pending_logs = [] 重新绑定，
