@@ -13,8 +13,11 @@ from typing import Any, Optional
 from ..core.events import LogBus
 from ..core.network import NmEngine
 from .params import NmProtocolParams, NmTimingParams, get_timing
+from .paths import resolve_data
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "network.json"
+# 打包成 exe 后 __file__ 指向临时解压目录，不能再用 parents[2] 拼路径。
+# resolve_data 会先看 exe 同目录有没有同名文件（方便改配置不重新打包）。
+DEFAULT_CONFIG_PATH = resolve_data("config/network.json")
 
 
 @dataclass
@@ -59,6 +62,7 @@ def load_config(path: str | Path | None = None) -> NetworkConfig:
         send_sleep_indication_on_rss=proto_raw.get("send_sleep_indication_on_rss", True),
         rss_local_wakeup_to_rms=proto_raw.get("rss_local_wakeup_to_rms", False),
         route_nm_between_channels=proto_raw.get("route_nm_between_channels", False),
+        diag_can_wake_from_sleep=proto_raw.get("diag_can_wake_from_sleep", False),
     )
 
     topology = raw.get("topology", {})

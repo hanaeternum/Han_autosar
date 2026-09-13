@@ -3,5 +3,8 @@
 
 PyQt5>=5.15.9
 
+# 可选：打包成 exe 时需要（python tools/build_exe.py）
+# pyinstaller>=6.0
+
 # 可选：将来接真实 CAN 硬件时启用（替换 src/core/virtual_bus.py）
 # python-can>=4.3.1
