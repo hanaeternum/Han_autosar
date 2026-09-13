@@ -132,9 +132,25 @@ class CanNmNode:
     def can_nm_repeat_message_request(self) -> None:
         self.handle(NmEvent.REPEAT_MESSAGE_REQUEST)
 
-    def report_diag_request(self) -> None:
-        """收到诊断报文（规范 4.3.3.3）。"""
-        self.handle(NmEvent.DIAG_REQUEST_RECEIVED)
+    def report_diag_request(self) -> bool:
+        """收到诊断报文（规范 4.3.3.3）。
+
+        返回是否被接受。BSM / PBS 下**不接收应用报文**（规范表 4），诊断报文无法唤醒网络，
+        此时返回 False 并打一条告警 —— 真实车辆里诊断仪是靠唤醒收发器间接让 ECU 上电的，
+        等效于先来一次本地唤醒，而不是诊断报文直接把 CanNm 拉起来。
+        """
+        accepted = self.handle(NmEvent.DIAG_REQUEST_RECEIVED)
+        if not accepted:
+            hint = (
+                "如需演示诊断直接唤醒，请把 protocol.diag_can_wake_from_sleep 置为 true"
+                if not self.proto.diag_can_wake_from_sleep else ""
+            )
+            self._log(
+                LogLevel.WARN,
+                f"诊断报文被忽略：{self.state.short} 状态下不接收应用报文（规范表 4）。"
+                f"{hint or '真实车辆需先由本地事件或远程 NM 报文唤醒'}",
+            )
+        return accepted
 
     # =====================================================================
     # 事件派发

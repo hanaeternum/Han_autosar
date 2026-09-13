@@ -140,6 +140,17 @@ def _g_diag_only_demand(node: Any, payload: Any) -> bool:
     return not (node.keep_awake - {"DIAG"})
 
 
+def _g_diag_wake_enabled(node: Any, payload: Any) -> bool:
+    """BSM / PBS 下是否允许诊断报文直接唤醒网络。
+
+    规范表 4 里 BSM 与 PBS 的"应用报文 Rx"都是 N，也就是说这两个状态根本**不接收**
+    诊断报文，因此默认关闭。置为 True 时行为与 4.3.3.3 的 RSS 保持一致（直接进 NOS
+    并启动 T_WAIT_DiagReq），但这会绕过"进入网络模式默认先进 RMS"的规则，属于
+    需要客户确认的扩展行为。
+    """
+    return bool(node.proto.diag_can_wake_from_sleep)
+
+
 GUARDS = {
     "always": _g_always,
     "network_requested": _g_network_requested,
@@ -149,6 +160,7 @@ GUARDS = {
     "rss_local_wakeup_to_nos": _g_rss_local_wakeup_to_nos,
     "rss_local_wakeup_to_rms": _g_rss_local_wakeup_to_rms,
     "diag_only_demand": _g_diag_only_demand,
+    "diag_wake_enabled": _g_diag_wake_enabled,
 }
 
 
@@ -174,6 +186,9 @@ TRANSITIONS: list[Transition] = [
                "always", "4.3.2", "收到 NM 报文→RMS，AWB=0，按正常周期发送"),
     Transition(NmState.BUS_SLEEP, NmEvent.NETWORK_RELEASE, NmState.BUS_SLEEP, "action_mark_release",
                "always", "4.3.1", "睡眠中释放网络需求，无状态变化"),
+    Transition(NmState.BUS_SLEEP, NmEvent.DIAG_REQUEST_RECEIVED, NmState.NORMAL_OPERATION,
+               "action_enter_nos_diag", "diag_wake_enabled", "扩展（待确认）",
+               "BSM 下不接收应用报文（规范表 4），诊断报文默认无法唤醒；开启 diag_can_wake_from_sleep 后可直接进 NOS"),
 
     # ---------------- PrepareBusSleepMode ----------------
     Transition(NmState.PREPARE_BUS_SLEEP, NmEvent.LOCAL_WAKEUP, NmState.REPEAT_MESSAGE, "action_enter_rms_active",
@@ -184,6 +199,9 @@ TRANSITIONS: list[Transition] = [
                "always", "4.3.2", "T_WAIT_BUS_SLEEP 超时→BSM"),
     Transition(NmState.PREPARE_BUS_SLEEP, NmEvent.NETWORK_RELEASE, NmState.PREPARE_BUS_SLEEP, "action_mark_release",
                "always", "4.3.2", "已准备睡眠，无状态变化"),
+    Transition(NmState.PREPARE_BUS_SLEEP, NmEvent.DIAG_REQUEST_RECEIVED, NmState.NORMAL_OPERATION,
+               "action_enter_nos_diag", "diag_wake_enabled", "扩展（待确认）",
+               "PBS 下同样不接收应用报文（规范表 4），诊断报文默认无法打断休眠流程"),
 
     # ---------------- RepeatMessageState ----------------
     Transition(NmState.REPEAT_MESSAGE, NmEvent.T_REPEAT_MESSAGE_EXPIRED, NmState.NORMAL_OPERATION, "action_enter_nos",

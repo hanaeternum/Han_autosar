@@ -131,6 +131,10 @@ def build_markdown() -> str:
     add("   快速发送；当前默认按 4.3.3.3 进 NOS，可用配置项切换。")
     add("6. **进入 RSS 是否补发一帧睡眠指示**：因 RSS 本身停发 NM 报文，若不补发则该位无法广播；")
     add("   当前默认补发一帧，可用配置项 `send_sleep_indication_on_rss` 关闭。")
+    add("7. **诊断报文能否在 BSM / PBS 下唤醒网络**：规范表 4 中这两个状态的「应用报文 Rx」为 N，")
+    add("   即根本不接收诊断报文，因此**默认不能**；诊断只能把 RSS 拉回 NOS（4.3.3.3）。")
+    add("   若客户要求诊断仪可直接唤醒网络，把配置项 `diag_can_wake_from_sleep` 置为 true，")
+    add("   行为与 RSS 一致（直接进 NOS 并启动 T_WAIT_DiagReq），但会绕过「默认先进 RMS」的规则。")
     add("")
     return "\n".join(lines)
 

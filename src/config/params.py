@@ -106,6 +106,10 @@ class NmProtocolParams:
     rss_local_wakeup_to_rms: bool = False
     # 总线是否转播 NM 报文（NM 报文不跨网段路由，保持 False）
     route_nm_between_channels: bool = False
+    # BSM / PBS 下是否允许诊断报文直接唤醒网络。
+    # 规范表 4 里这两个状态的"应用报文 Rx"都是 N（根本不接收诊断报文），所以默认 False。
+    # 置 True 后行为与 RSS 保持一致：直接进 NOS 并启动 T_WAIT_DiagReq。需客户确认。
+    diag_can_wake_from_sleep: bool = False
 
     def validate(self) -> list[str]:
         errs: list[str] = []

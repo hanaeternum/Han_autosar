@@ -7,7 +7,8 @@
     "send_sleep_indication_on_rss": true,
     "rss_local_wakeup_to_rms": false,
     "route_nm_between_channels": false,
-    "comment": "id_base=1024 即 0x400；报文 ID = 0x400 + NodeID"
+    "diag_can_wake_from_sleep": false,
+    "comment": "id_base=1024 即 0x400；报文 ID = 0x400 + NodeID。diag_can_wake_from_sleep 默认 false：BSM/PBS 不接收应用报文（规范表 4），诊断报文无法唤醒网络"
   },
   "topology": {
     "description": "网关 GW 横跨车身网与信息网，两个网段各有独立的 NM 状态；PEPS 为主动唤醒源",

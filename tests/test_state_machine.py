@@ -193,6 +193,59 @@ class TestTimeoutSemantics(unittest.TestCase):
         )
 
 
+class TestDiagWakeScope(unittest.TestCase):
+    """诊断报文的作用范围：只能把 RSS 拉回 NOS，不能从 BSM / PBS 唤醒。
+
+    依据庆铃规范表 4：BSM 与 PBS 下"应用报文 Rx"都是 N，即根本不接收诊断报文。
+    """
+
+    def test_diag_ignored_in_bus_sleep(self):
+        engine = make_engine([("A", 0x10)])
+        node = engine.node("A", "CAN_TEST")
+        self.assertIs(node.state, NmState.BUS_SLEEP)
+        self.assertFalse(node.report_diag_request(), "BSM 下诊断请求应被拒绝")
+        engine.run(200)
+        self.assertIs(node.state, NmState.BUS_SLEEP, "BSM 不应被诊断报文唤醒")
+
+    def test_diag_ignored_in_prepare_bus_sleep(self):
+        engine = make_engine([("A", 0x10)])
+        node = engine.node("A", "CAN_TEST")
+        node.can_nm_network_request("KL15", wakeup_reason=2)
+        engine.run(1300)
+        node.can_nm_network_release()
+        engine.run(2200)
+        self.assertIs(node.state, NmState.PREPARE_BUS_SLEEP)
+        self.assertFalse(node.report_diag_request(), "PBS 下诊断请求应被拒绝")
+        engine.run(200)
+        self.assertIs(node.state, NmState.PREPARE_BUS_SLEEP, "PBS 不应被诊断报文打断")
+
+    def test_diag_wakes_ready_sleep(self):
+        """对照：RSS 下诊断必须把节点拉回 NOS 并启动 T_WAIT_DiagReq。"""
+        engine = make_engine([("A", 0x10)])
+        node = engine.node("A", "CAN_TEST")
+        node.can_nm_network_request("KL15", wakeup_reason=2)
+        engine.run(1300)
+        node.can_nm_network_release()
+        engine.run(50)
+        self.assertIs(node.state, NmState.READY_SLEEP)
+        self.assertTrue(node.report_diag_request())
+        self.assertIs(node.state, NmState.NORMAL_OPERATION)
+        self.assertIn("DIAG", node.keep_awake)
+        self.assertTrue(node.timers.running("wait_diag_req"))
+
+    def test_diag_wake_flag_allows_sleep_wake(self):
+        """扩展开关：diag_can_wake_from_sleep=True 时允许从 BSM 直接进 NOS。"""
+        engine = make_engine(
+            [("A", 0x10)],
+            proto=NmProtocolParams(diag_can_wake_from_sleep=True),
+        )
+        node = engine.node("A", "CAN_TEST")
+        self.assertTrue(node.report_diag_request(), "开启开关后 BSM 下诊断应被接受")
+        self.assertIs(node.state, NmState.NORMAL_OPERATION)
+        self.assertIn("DIAG", node.keep_awake)
+        self.assertTrue(node.timers.running("wait_diag_req"))
+
+
 class TestAwbSemantics(unittest.TestCase):
     """规范 4.6.4：AWB 由本地唤醒置 1 后，必须保持到"进入预睡眠状态"才清零。
 
