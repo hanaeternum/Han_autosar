@@ -42,6 +42,13 @@ CAN_INFO  GW(0x10) IC(0x40)  IVI(0x50)      由网关应用层联动拉起
 - `rss_local_wakeup_to_rms`：RSS 收到本地唤醒进 RMS（NM_15 口径）还是 NOS（4.3.3.3 口径）。
 - 待客户确认：Remote Sleep Indication Bit 位序、AC_4_OTA 位序、状态码 16/32、T_WakeUp 取值。
 
+## 保密约定（重要）
+
+- 客户规范原件不入库：`.gitignore` 有 `庆铃*.pdf`。
+- **PDF 提取出的文本同样保密**。2026-09-13 发现工作区有 `_spec_dump.txt`（庆铃规范 PDF 全文，42KB），
+  文件名不含"庆铃"所以不会被上面那条命中，一度处于未跟踪状态、随时可能被 `git add -A` 提交。
+  已补 `*_spec_dump.txt` / `*_dump.txt` 两条规则。**新增任何规范衍生文件时要检查是否被 ignore 命中。**
+
 ## 环境
 - 内核与脚本仅用 Python 标准库；跑 `sim_demo.py` 与单测无需安装依赖。
 - PyQt5 只在实际启动界面时需要。验证环境：Python 3.13.14 + PyQt5 5.15.11 / Qt 5.15.2（Windows）。
