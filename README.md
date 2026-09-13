@@ -502,6 +502,7 @@ python tools/gen_docs.py     # → docs/状态机说明.md
 main.py                        启动入口（图形界面）
 sim_demo.py                    无界面场景回放
 requirements.txt               依赖（只有 PyQt5）
+CHANGELOG.txt                  修改记录（按日期倒序，含涉及文件）
 config/network.json            拓扑、参数档位、位序开关 —— 改配置先看这里
 src/
   config/                      配置加载与校验
